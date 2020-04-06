@@ -10,6 +10,8 @@
 
 const char *ssid = "CellSpot_2.4GHz_DF28";
 const char *password = "Wrobeltoziomal";
+const char *host = "dweet.io";
+const int httpPort = 80;
 
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML>
@@ -110,13 +112,37 @@ void setup()
   server.on("/temperature", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send_P(200, "text/plain", readDSTemperature().c_str());
   });
-  server.begin();  
+  server.begin();
 }
 
 void loop()
 {
-  //sensor.requestTemperatures();
-  //float temp = sensor.getTempCByIndex(0);
-  //Serial.println(temp);
-  //delay(5000);
+  Serial.print("Connecting to ");
+  Serial.println(host);
+
+  WiFiClient client;
+
+  if (!client.connect(host, httpPort))
+  {
+    Serial.println("Connection failed!");
+    return;
+  }
+
+  String temperature = readDSTemperature();
+
+  client.print(String("GET /dweet/for/wroblessBanaTemp01?temperature=") + temperature + " HTTP/1.1\r\n" +
+               "Host: " + host + "\r\n" +
+               "Connection: close\r\n\r\n");
+  delay(10);
+
+  while (client.available())
+  {
+    String line = client.readStringUntil('\r');
+    Serial.print(line);
+  }
+  
+  Serial.println();
+  Serial.println("Closing connection...");
+
+  delay(10000);
 }
